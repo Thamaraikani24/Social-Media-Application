@@ -232,6 +232,92 @@ exports.removeFollower = async (req, res) => {
 
   }
 };
+//block follower
+exports.blockFollower = async (req, res) => {
+  try {
+    const currentUserId = req.params.id;
+    const { requesterId } = req.body;
+
+    const currentUser = await User.findById(currentUserId);
+
+    if (!currentUser) {
+      return res.status(404).send({
+        message: "User not found",
+      });
+    }
+
+    // First check if the user is already blocked
+    const alreadyBlocked = currentUser.blockedFollowers.some(
+      (id) => id.toString() === requesterId
+    );
+
+    if (alreadyBlocked) {
+      return res.status(400).send({
+        message: "Follower already blocked",
+      });
+    }
+
+    // Then check follower
+    const isFollower = currentUser.followers.some(
+      (id) => id.toString() === requesterId
+    );
+
+    if (!isFollower) {
+      return res.status(400).send({
+        message: "This user is not your follower",
+      });
+    }
+
+    currentUser.blockedFollowers.push(requesterId);
+
+    currentUser.followers = currentUser.followers.filter(
+      (id) => id.toString() !== requesterId
+    );
+
+    await currentUser.save();
+
+    await User.findByIdAndUpdate(requesterId, {
+      $pull: {
+        following: currentUserId,
+      },
+    });
+
+    res.status(200).send({
+      message: "Follower blocked successfully",
+      blockedFollowers: currentUser.blockedFollowers,
+    });
+
+  } catch (err) {
+    res.status(500).send({
+      message: err.message,
+    });
+  }
+};
+// get blocked followers
+exports.getBlockedFollowers = async (req, res) => {
+  try {
+
+    const user = await User.findById(req.params.id)
+      .populate("blockedFollowers", "name email profilePic");
+
+    if (!user) {
+      return res.status(404).send({
+        message: "User not found",
+      });
+    }
+
+    res.status(200).send({
+      message: "Blocked followers fetched successfully",
+      blockedFollowers: user.blockedFollowers,
+    });
+
+  } catch (err) {
+    res.status(500).send({
+      message: err.message,
+    });
+  }
+};
+
 
 // Get follow requests
 exports.getFollowRequests = async (req, res) => {

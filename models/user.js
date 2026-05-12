@@ -40,6 +40,12 @@ const userSchema=new mongoose.Schema({
         ref: "User",
       },
     ],
+     blockedFollowers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   {
     timestamps: true,
