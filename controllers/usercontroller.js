@@ -122,3 +122,33 @@ exports.deleteUser = async (req, res) => {
     });
   }
 };
+exports.uploadProfileImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        message: "No file uploaded"
+      });
+    }
+
+    const userId = req.params.id;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        profilePicture: req.file.location
+      },
+      { new: true }
+    );
+
+    res.status(200).json({
+      message: "Image uploaded successfully",
+      user: updatedUser
+    });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      error: err.message
+    });
+  }
+};

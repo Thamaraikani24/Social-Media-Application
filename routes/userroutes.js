@@ -4,14 +4,19 @@ const {
   createUser,
   getAllUsers,
   getSingleUser,
+  uploadProfileImage
 } = require("../controllers/usercontroller");
+
+const upload = require("../middleware/upload");
 
 const router = express.Router();
 
-router.post("/createUser", createUser);        // POST /users/createUser
+router.post("/createUser", createUser);
 
-router.get("/getAllUsers", getAllUsers);         // GET  /users/getAllUsers
+router.get("/getAllUsers", getAllUsers);
 
-router.get("/getSingleUser/:id", getSingleUser); // GET  /users/getSingleUser/:id
+router.get("/getSingleUser/:id", getSingleUser);
+
+router.post("/upload-profile/:id",upload.single("profileImage"),uploadProfileImage);
 
 module.exports = router;
