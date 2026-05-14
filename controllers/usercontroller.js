@@ -1,7 +1,5 @@
 const User = require('../models/user');
 const validateUser = require('../validation/uservalidation');
-// const { PutObjectCommand } = require('@aws-sdk/client-s3');
-// const s3 = require('../config/s3');
 
 // create user
 exports.createUser = async (req, res) => {
