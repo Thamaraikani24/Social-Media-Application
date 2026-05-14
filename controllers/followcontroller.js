@@ -3,33 +3,41 @@ const validateFollowRequest = require('../validation/followvalidation');
 
 exports.followUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const targetUser = await User.findById(req.params.id);
+    const followerUser = await User.findById(req.body.followerId);
 
-    if (!user) {
+    if (!targetUser || !followerUser) {
       return res.status(404).json({
         success: false,
         message: "User not found",
       });
     }
 
-    const followerId = req.body.followerId;
+    if (req.params.id === req.body.followerId) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot follow yourself",
+      });
+    }
 
-    if (user.followers.includes(followerId)) {
+    if (targetUser.followers.includes(req.body.followerId)) {
       return res.status(400).json({
         success: false,
         message: "Already following this user",
       });
     }
 
-    user.followers.push(followerId);
+    targetUser.followers.push(req.body.followerId);
+    followerUser.following.push(req.params.id);
 
-    await user.save();
+    await targetUser.save();
+    await followerUser.save();
 
     res.status(200).json({
       success: true,
       message: "User followed successfully",
-      data: user,
     });
+
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -375,5 +383,32 @@ exports.getFollowers = async (req, res) => {
       message: err.message,
     });
 
+  }
+};
+exports.getFollowing = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).populate(
+      "following",
+      "name email profilePicture bio"
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      count: user.following.length,
+      data: user.following,
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };

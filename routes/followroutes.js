@@ -1,6 +1,7 @@
 const express = require("express");
 
 const {
+  followUser,
   sendFollowRequest,
   acceptFollowRequest,
   rejectFollowRequest,
@@ -9,9 +10,12 @@ const {
   getBlockedFollowers,
   getFollowRequests,
   getFollowers,
+  getFollowing,
 } = require("../controllers/followcontroller");
 
 const router = express.Router();
+
+router.put("/follow/:id",followUser); // Follow or unfollow a user
 
 router.put("/follow-request/:id", sendFollowRequest);  // Send follow request
 
@@ -28,5 +32,7 @@ router.get("/follow-requests/:id", getFollowRequests); // get follow requests
 router.get("/followers/:id", getFollowers);   // get followers
 
 router.get("/blocked-followers/:id", getBlockedFollowers); // get blocked followers
+
+router.get("/following/:id", getFollowing); // get following
 
 module.exports = router;
