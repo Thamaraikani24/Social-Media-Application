@@ -1,5 +1,7 @@
-const User=require('../models/user');
-const validateUser=require('../validation/uservalidation');
+const User = require('../models/user');
+const validateUser = require('../validation/uservalidation');
+// const { PutObjectCommand } = require('@aws-sdk/client-s3');
+// const s3 = require('../config/s3');
 
 // create user
 exports.createUser = async (req, res) => {
@@ -19,6 +21,7 @@ exports.createUser = async (req, res) => {
       success: true,
       data: user,
     });
+
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -32,11 +35,19 @@ exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find();
 
+    const usersWithImageUrl = users.map((user) => ({
+      ...user.toObject(),
+      profilePicture: user.profilePicture
+        ? `https://${ process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${user.profilePicture}`
+        : null
+    }));
+
     res.status(200).json({
       success: true,
       count: users.length,
-      data: users,
+      data: usersWithImageUrl,
     });
+
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -50,6 +61,8 @@ exports.getSingleUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
 
+    console.log("USER DATA:", user);
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -57,10 +70,18 @@ exports.getSingleUser = async (req, res) => {
       });
     }
 
+    const userData = {
+      ...user.toObject(),
+      profilePicture: user.profilePicture
+        ? `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${user.profilePicture}`
+        : null
+    };
+
     res.status(200).json({
       success: true,
-      data: user,
+      data: userData,
     });
+
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -68,7 +89,6 @@ exports.getSingleUser = async (req, res) => {
     });
   }
 };
-
 // update user
 exports.updateUser = async (req, res) => {
   try {
@@ -91,6 +111,7 @@ exports.updateUser = async (req, res) => {
       success: true,
       data: user,
     });
+
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -115,6 +136,7 @@ exports.deleteUser = async (req, res) => {
       success: true,
       message: "User deleted successfully",
     });
+
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -122,32 +144,41 @@ exports.deleteUser = async (req, res) => {
     });
   }
 };
+
+// upload profile image
 exports.uploadProfileImage = async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
+        success: false,
         message: "No file uploaded"
       });
     }
 
-    const userId = req.params.id;
-
     const updatedUser = await User.findByIdAndUpdate(
-      userId,
+      req.params.id,
       {
-        profilePicture: req.file.location
+        profilePicture: req.file.key
       },
       { new: true }
     );
 
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
     res.status(200).json({
+      success: true,
       message: "Image uploaded successfully",
       user: updatedUser
     });
 
   } catch (err) {
-    console.log(err);
     res.status(500).json({
+      success: false,
       error: err.message
     });
   }
