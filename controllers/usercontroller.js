@@ -1,5 +1,7 @@
 const User = require('../models/user');
 const validateUser = require('../validation/uservalidation');
+const {generateSignedUrl}=require('../service/s3service');
+const {uploadToS3}=require('../service/s3service');
 
 // create user
 exports.createUser = async (req, res) => {
@@ -33,12 +35,12 @@ exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find();
 
-    const usersWithImageUrl = users.map((user) => ({
-      ...user.toObject(),
-      profilePicture: user.profilePicture
-        ? `https://${ process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${user.profilePicture}`
-        : null
-    }));
+    const usersWithImageUrl = await Promise.all(
+  users.map(async (user) => ({
+    ...user.toObject(),
+    profilePicture: await generateSignedUrl(user.profilePicture),
+  }))
+);
 
     res.status(200).json({
       success: true,
@@ -68,16 +70,15 @@ exports.getSingleUser = async (req, res) => {
       });
     }
 
-    const userData = {
-      ...user.toObject(),
-      profilePicture: user.profilePicture
-        ? `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${user.profilePicture}`
-        : null
-    };
+    const { uploadToS3 } = require("../services/s3Service");
+
+    const key = await uploadToS3(req.file, "profile-images");
+
+     user.profilePicture = key;
 
     res.status(200).json({
       success: true,
-      data: userData,
+      data: user,
     });
 
   } catch (err) {
@@ -144,19 +145,23 @@ exports.deleteUser = async (req, res) => {
 };
 
 // upload profile image
+// const { uploadToS3 } = require("../service/s3 service");
+
 exports.uploadProfileImage = async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: "No file uploaded"
+        message: "No file uploaded",
       });
     }
+
+    const key = await uploadToS3(req.file, "profile-images");
 
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
       {
-        profilePicture: req.file.key
+        profilePicture: key,
       },
       { new: true }
     );
@@ -164,20 +169,20 @@ exports.uploadProfileImage = async (req, res) => {
     if (!updatedUser) {
       return res.status(404).json({
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
 
     res.status(200).json({
       success: true,
       message: "Image uploaded successfully",
-      user: updatedUser
+      user: updatedUser,
     });
 
   } catch (err) {
     res.status(500).json({
       success: false,
-      error: err.message
+      error: err.message,
     });
   }
 };
