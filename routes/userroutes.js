@@ -2,6 +2,8 @@ const express = require("express");
 
 const {
   createUser,
+  updateUser,
+  deleteUser,
   getAllUsers,
   getSingleUser,
   uploadProfileImage
@@ -16,6 +18,10 @@ router.post("/createUser", createUser);   // Create user
 router.get("/getAllUsers", getAllUsers);  // Get all users
 
 router.get("/getSingleUser/:id", getSingleUser);   // Get single user by id
+
+router.put("/updateUser/:id", updateUser); // Update user
+
+router.delete("/deleteUser/:id", deleteUser); // Delete user
 
 router.post("/upload-profile/:id",upload.single("profileImage"),uploadProfileImage); // Upload profile image for user
 
